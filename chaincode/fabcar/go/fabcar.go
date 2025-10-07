@@ -1,151 +1,184 @@
-/*
-SPDX-License-Identifier: Apache-2.0
-*/
-
 package main
-
 import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-
-	"github.com/hyperledger/fabric-contract-api-go/contractapi"
+	"github.com/hyperledger/fabric-chaincode-go/shim"
+	sc "github.com/hyperledger/fabric-protos-go/peer"
 )
 
-// SmartContract provides functions for managing a car
 type SmartContract struct {
-	contractapi.Contract
 }
 
-// Car describes basic details of what makes up a car
-type Car struct {
-	Make   string `json:"make"`
-	Model  string `json:"model"`
-	Colour string `json:"colour"`
-	Owner  string `json:"owner"`
+type Student struct {
+	School string `json:"school"`
+	Major  string `json:"major"`
+	Id     int	`json:"id"`
+	Name   string `json:"name"`
 }
 
-// QueryResult structure used for handling result of query
-type QueryResult struct {
-	Key    string `json:"Key"`
-	Record *Car
+type Grade struct {
+	Course_name string  `json:"course"`
+	Course_id   string  `json:"courseId"`
+	Teacher     string  `json:"teacher"`
+	School      string  `json:"school"`
+	Student_id  int     `json:"studentId"`
+	Year	    int     `json:"year"`
+	Semester    int     `json:"semester"`
+	Score       float64 `json:"score"`
 }
 
-// InitLedger adds a base set of cars to the ledger
-func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
-	cars := []Car{
-		Car{Make: "Toyota", Model: "Prius", Colour: "blue", Owner: "Tomoko"},
-		Car{Make: "Ford", Model: "Mustang", Colour: "red", Owner: "Brad"},
-		Car{Make: "Hyundai", Model: "Tucson", Colour: "green", Owner: "Jin Soo"},
-		Car{Make: "Volkswagen", Model: "Passat", Colour: "yellow", Owner: "Max"},
-		Car{Make: "Tesla", Model: "S", Colour: "black", Owner: "Adriana"},
-		Car{Make: "Peugeot", Model: "205", Colour: "purple", Owner: "Michel"},
-		Car{Make: "Chery", Model: "S22L", Colour: "white", Owner: "Aarav"},
-		Car{Make: "Fiat", Model: "Punto", Colour: "violet", Owner: "Pari"},
-		Car{Make: "Tata", Model: "Nano", Colour: "indigo", Owner: "Valeria"},
-		Car{Make: "Holden", Model: "Barina", Colour: "brown", Owner: "Shotaro"},
-	}
-
-	for i, car := range cars {
-		carAsBytes, _ := json.Marshal(car)
-		err := ctx.GetStub().PutState("CAR"+strconv.Itoa(i), carAsBytes)
-
-		if err != nil {
-			return fmt.Errorf("Failed to put to world state. %s", err.Error())
-		}
-	}
-
-	return nil
+type Price struct {
+	Name        string `json:"name"`
+	Id          string `json:"id"`
+	Year        int    `json:"year"`
+	Level       string `json:"level"`
+	Institution string `json:"institution"`
 }
 
-// CreateCar adds a new car to the world state with given details
-func (s *SmartContract) CreateCar(ctx contractapi.TransactionContextInterface, carNumber string, make string, model string, colour string, owner string) error {
-	car := Car{
-		Make:   make,
-		Model:  model,
-		Colour: colour,
-		Owner:  owner,
-	}
-
-	carAsBytes, _ := json.Marshal(car)
-
-	return ctx.GetStub().PutState(carNumber, carAsBytes)
-}
-
-// QueryCar returns the car stored in the world state with given id
-func (s *SmartContract) QueryCar(ctx contractapi.TransactionContextInterface, carNumber string) (*Car, error) {
-	carAsBytes, err := ctx.GetStub().GetState(carNumber)
-
+func atoi(str string) int {
+	i, err := strconv.Atoi(str)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read from world state. %s", err.Error())
+		return 0
 	}
-
-	if carAsBytes == nil {
-		return nil, fmt.Errorf("%s does not exist", carNumber)
-	}
-
-	car := new(Car)
-	_ = json.Unmarshal(carAsBytes, car)
-
-	return car, nil
+	return i
 }
 
-// QueryAllCars returns all cars found in world state
-func (s *SmartContract) QueryAllCars(ctx contractapi.TransactionContextInterface) ([]QueryResult, error) {
-	startKey := ""
-	endKey := ""
-
-	resultsIterator, err := ctx.GetStub().GetStateByRange(startKey, endKey)
-
+func atof(str string) float64 {
+	f, err := strconv.ParseFloat(str, 64)
 	if err != nil {
-		return nil, err
+		return 0.0
 	}
-	defer resultsIterator.Close()
-
-	results := []QueryResult{}
-
-	for resultsIterator.HasNext() {
-		queryResponse, err := resultsIterator.Next()
-
-		if err != nil {
-			return nil, err
-		}
-
-		car := new(Car)
-		_ = json.Unmarshal(queryResponse.Value, car)
-
-		queryResult := QueryResult{Key: queryResponse.Key, Record: car}
-		results = append(results, queryResult)
-	}
-
-	return results, nil
+	return f
 }
 
-// ChangeCarOwner updates the owner field of car with given id in world state
-func (s *SmartContract) ChangeCarOwner(ctx contractapi.TransactionContextInterface, carNumber string, newOwner string) error {
-	car, err := s.QueryCar(ctx, carNumber)
+func (s *SmartContract) Init(APIstub shim.ChaincodeStubInterface) sc.Response {
+	return shim.Success(nil)
+}
 
-	if err != nil {
-		return err
+func (s *SmartContract) Invoke(APIstub shim.ChaincodeStubInterface) sc.Response {
+	function, args := APIstub.GetFunctionAndParameters()
+	if function == "addStudent" {
+		return s.addStudent(APIstub, args)
+	} else if function == "queryStudent" {
+		return s.queryStudent(APIstub, args)
+	} else if function == "addGrade" {
+		return s.addGrade(APIstub, args)
+	} else if function == "queryGrade" {
+		return s.queryGrade(APIstub, args)
+	} else if function == "addPrice" {
+		return s.addPrice(APIstub, args)
+	} else if function == "queryPrice" {
+		return s.queryPrice(APIstub, args)
+	}
+	return shim.Error("Invalid Smart Contract function name.")
+}
+
+// Add a new student
+func (s *SmartContract) addStudent(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+	if len(args) != 4 {
+		return shim.Error("Incorrect number of arguments. Expecting 4")
 	}
 
-	car.Owner = newOwner
+	var student = Student{School: args[0], Major: args[1], Id: atoi(args[2]), Name: args[3]}
+	
+	studentAsBytes, _ := json.Marshal(student)
+	// studentid+name as key
+	err := APIstub.PutState(args[0]+args[2], studentAsBytes)
+	if err != nil {
+		return shim.Error(fmt.Sprintf("Failed to record %s student: %s", args[0], args[2]))
+	}
 
-	carAsBytes, _ := json.Marshal(car)
+	return shim.Success(nil)
+}
 
-	return ctx.GetStub().PutState(carNumber, carAsBytes)
+// Query a student by school and id
+func (s *SmartContract) queryStudent(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+	if len(args) != 2 {
+		return shim.Error("Incorrect number of arguments. Expecting 2")
+	}
+
+	studentAsBytes, _ := APIstub.GetState(args[0]+args[1])
+	if studentAsBytes == nil {
+		return shim.Error("Could not locate student, the information may not exist")
+	}
+	return shim.Success(studentAsBytes)
+}	
+
+// Add a new grade record
+func (s *SmartContract) addGrade(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+	if len(args) != 8 {
+		return shim.Error("Incorrect number of arguments. Expecting 8")
+	}
+
+	var grade = Grade{Course_name: args[0], 
+					  Course_id: args[1], 
+					  Teacher: args[2], 
+					  School: args[3], 
+					  Student_id: atoi(args[4]), 
+					  Year: atoi(args[5]), 
+					  Score: atof(args[6]),
+					  Semester: atoi(args[7])}
+	
+	gradeAsBytes, _ := json.Marshal(grade)
+	// school+studentid+courseid+year+semester as key
+	err := APIstub.PutState(args[3]+args[4]+args[1]+args[5]+args[7], gradeAsBytes)
+	if err != nil {
+		return shim.Error(fmt.Sprintf("Failed to record grade: %s", args[4]))
+	}
+	return shim.Success(nil)
+}
+
+// Query a grade record by school, student id, course id, year and semester
+func (s *SmartContract) queryGrade(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+	if len(args) != 5 {
+		return shim.Error("Incorrect number of arguments. Expecting 5")
+	}
+
+	gradeAsBytes, _ := APIstub.GetState(args[0]+args[1]+args[2]+args[3]+args[4])
+	if gradeAsBytes == nil {
+		return shim.Error("Could not locate grade record, the information may not exist")
+	}
+	return shim.Success(gradeAsBytes)
+}
+
+// Add a new price record
+func (s *SmartContract) addPrice(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+	if len(args) != 5 {
+		return shim.Error("Incorrect number of arguments. Expecting 5")
+	}
+
+	var price = Price{Name: args[0], 
+					  Id: args[1], 
+					  Year: atoi(args[2]), 
+					  Level: args[3], 
+					  Institution: args[4]}
+	
+	priceAsBytes, _ := json.Marshal(price)
+	// Id as key
+	err := APIstub.PutState(args[1], priceAsBytes)
+	if err != nil {
+		return shim.Error(fmt.Sprintf("Failed to record price: %s", args[1]))
+	}
+	return shim.Success(nil)
+}
+
+// Query a price record by id
+func (s *SmartContract) queryPrice(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+	if len(args) != 1 {
+		return shim.Error("Incorrect number of arguments. Expecting 1")
+	}
+
+	priceAsBytes, _ := APIstub.GetState(args[0])
+	if priceAsBytes == nil {
+		return shim.Error("Could not locate price record, the information may not exist")
+	}
+	return shim.Success(priceAsBytes)
 }
 
 func main() {
-
-	chaincode, err := contractapi.NewChaincode(new(SmartContract))
-
+	err := shim.Start(new(SmartContract))
 	if err != nil {
-		fmt.Printf("Error create fabcar chaincode: %s", err.Error())
-		return
-	}
-
-	if err := chaincode.Start(); err != nil {
-		fmt.Printf("Error starting fabcar chaincode: %s", err.Error())
+		fmt.Printf("Error creating new Smart Contract: %s", err)
 	}
 }

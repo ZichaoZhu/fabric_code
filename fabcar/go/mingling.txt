@@ -1,0 +1,5 @@
+curl localhost:8000/queryallcars
+
+curl "localhost:8000/changeCarOwner?carNumber=CAR0&newOwner=Bob"
+
+curl "localhost:8000/createCar?carNumber=CAR12&make=sssssss&model=Camry&colour=Blue&owner=John"
