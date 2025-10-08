@@ -159,6 +159,7 @@ func (s *SmartContract) Invoke(APIstub shim.ChaincodeStubInterface) sc.Response 
 // --- 业务逻辑函数 ---
 
 // addStudent 任何人都可以调用，申请创建一个学生身份
+// 参数顺序：school, major, id, name
 func (s *SmartContract) addStudent(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
     if len(args) != 4 { return shim.Error("参数数量错误，需要4个 (school, major, id, name)") }
 
@@ -180,6 +181,7 @@ func (s *SmartContract) addStudent(APIstub shim.ChaincodeStubInterface, args []s
 }
 
 // addGrade 只有被批准的学生才能为自己添加成绩
+// 参数顺序：course_name, course_id, teacher, school, studentId, year, score, semester
 func (s *SmartContract) addGrade(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
     if len(args) != 8 { return shim.Error("参数数量错误，需要8个") }
     
@@ -206,8 +208,8 @@ func (s *SmartContract) addGrade(APIstub shim.ChaincodeStubInterface, args []str
     return shim.Success(nil)
 }
 
-// ... existing code ...
 // addPrice 只有被批准的学生才能为自己添加奖项记录
+// 参数顺序：school, studentId, prizeName, prizeId, year, level, institution
 func (s *SmartContract) addPrice(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
     // 1. 检查参数数量，现在需要7个参数
     if len(args) != 7 {
@@ -254,6 +256,7 @@ func (s *SmartContract) addPrice(APIstub shim.ChaincodeStubInterface, args []str
 }
 
 // validateStudent 验证者调用，审批学生身份申请
+// 参数顺序：school, studentId, newStatus
 func (s *SmartContract) validateStudent(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
     if err := requireValidator(APIstub); err != nil { return shim.Error(err.Error()) }
     if len(args) != 3 { return shim.Error("参数数量错误，需要3个 (school, studentId, newStatus)") }
@@ -279,6 +282,7 @@ func (s *SmartContract) validateStudent(APIstub shim.ChaincodeStubInterface, arg
 }
 
 // validateGrade 验证者调用，审批成绩
+// 参数顺序：school, studentId, courseId, year, semester, newStatus
 func (s *SmartContract) validateGrade(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
     if err := requireValidator(APIstub); err != nil { return shim.Error(err.Error()) }
     if len(args) != 6 { return shim.Error("参数数量错误，需要6个 (school, studentId, courseId, year, semester, newStatus)") }
@@ -304,6 +308,7 @@ func (s *SmartContract) validateGrade(APIstub shim.ChaincodeStubInterface, args 
 }
 
 // validatePrice 验证者调用，审批奖项
+// 参数顺序：priceId, newStatus
 func (s *SmartContract) validatePrice(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
     if err := requireValidator(APIstub); err != nil { return shim.Error(err.Error()) }
     if len(args) != 2 { return shim.Error("参数数量错误，需要2个 (priceId, newStatus)") }
@@ -329,6 +334,7 @@ func (s *SmartContract) validatePrice(APIstub shim.ChaincodeStubInterface, args 
 }
 
 // queryStudent 任何人可调用，但只返回已批准的学生信息
+// 参数顺序：school, studentId
 func (s *SmartContract) queryStudent(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
     if len(args) != 2 { return shim.Error("参数数量错误，需要2个 (school, studentId)") }
 
@@ -348,6 +354,7 @@ func (s *SmartContract) queryStudent(APIstub shim.ChaincodeStubInterface, args [
 }
 
 // queryGrade 逻辑同 queryStudent
+// 参数顺序：school, studentId, courseId, year, semester
 func (s *SmartContract) queryGrade(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
     if len(args) != 5 { return shim.Error("参数数量错误，需要5个") }
 
@@ -366,6 +373,7 @@ func (s *SmartContract) queryGrade(APIstub shim.ChaincodeStubInterface, args []s
 }
 
 // queryPrice 逻辑同 queryStudent
+// 参数顺序：priceId
 func (s *SmartContract) queryPrice(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
     if len(args) != 1 { return shim.Error("参数数量错误，需要1个 (priceId)") }
 
